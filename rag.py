@@ -11,7 +11,7 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins='*')
 
 review_df = pd.read_csv("inputdata.csv", index_col=[0])
 review_df["Clothing ID"].value_counts()
@@ -37,8 +37,6 @@ def text_concat_info(row):
 
 reviews_df["Result Text"] = reviews_df.apply(text_concat_info, axis=1)
 
-reviews_df.shape
-
 reviews_df = reviews_df.dropna()
 
 def text_preprocessing(text: str):
@@ -47,8 +45,6 @@ def text_preprocessing(text: str):
     return text
 
 reviews_df = reviews_df.drop_duplicates(subset=["Result Text"])
-
-reviews_df.shape
 
 text_splitter = RecursiveCharacterTextSplitter(
     separators = ["."],
@@ -67,16 +63,12 @@ reviews_df["text_chunk"] = reviews_df["Result Text"].apply(split_into_chunks)
 reviews_df = reviews_df.explode("text_chunk")
 reviews_df["chunk_id"] = reviews_df.groupby(level=0).cumcount()
 
-reviews_df.shape
-
 # Create Document Embeddings Vectors
 model_name = "all-mpnet-base-v2"
 model = SentenceTransformer(model_name)
 
 text_chunks = reviews_df["text_chunk"].tolist()
 text_chunk_vectors = model.encode(text_chunks, show_progress_bar=True)
-
-text_chunk_vectors.shape
 
 def retrieve_relevant_documents(query, text_chunk_vectors, k):
     query_embedding = model.encode(query)
@@ -91,7 +83,6 @@ def retrieve_relevant_documents(query, text_chunk_vectors, k):
     return reviews_df.iloc[top_k_indices]
 
 relevant_rows = retrieve_relevant_documents("Fabric quality", text_chunk_vectors, 5)
-relevant_rows
 
 prompt_template = """
 Bạn là một trợ lý trò chuyện hữu ích tên là MaiDora. Tôi sẽ cung cấp cho bạn một số đánh giá sản phẩm trên một nền tảng thương mại điện tử về một sản phẩm cụ thể.
@@ -123,7 +114,7 @@ prompt = create_prompt("Fabric Quality")
 print(prompt)
 
 # Answering the user query
-genai.configure(api_key='AIzaSyAMlnwpdEMeZu9PYYy6eX-oP88PgtHKdEA')
+genai.configure(api_key='Gemini_KEY')
 
 geminiModel = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -161,4 +152,4 @@ def handle_message(data):
         emit('response', {'answer': answer})
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=4646)
+    socketio.run(app, debug=True, host='0.0.0.0', port=4646)
