@@ -8,6 +8,17 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 # Import the Python SDK
 import google.generativeai as genai
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Retrieve the API key from environment variables
+gemini_api_key = os.getenv('GEMINI_API_KEY')
+
+if not gemini_api_key:
+    raise ValueError("No API key found. Please set the GEMINI_API_KEY environment variable.")
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS
@@ -114,7 +125,7 @@ prompt = create_prompt("Fabric Quality")
 print(prompt)
 
 # Answering the user query
-genai.configure(api_key='Gemini_KEY')
+genai.configure(api_key=gemini_api_key)
 
 geminiModel = genai.GenerativeModel('gemini-1.5-flash')
 
